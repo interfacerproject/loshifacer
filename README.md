@@ -1,5 +1,2 @@
-# launch
-
-find ../losh_rdf/losh-rdf/RDF/gitlab.c
-om/ -iname "*.toml" | node index.mjs
-
+# Pay attention
+osh needs Openssl-1.x in order to work
