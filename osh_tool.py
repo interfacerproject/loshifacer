@@ -36,10 +36,6 @@ def short_output(data):
                 o = {}
                 o["importance"] = item["issues"][0]["importance"]
                 for issue in item["issues"]:
-                    if o["importance"] != issue["importance"]:
-                        print(o["importance"])
-                        print(issue["importance"])
-                        raise
                     msg = issue["msg"].split(":", 2)
                     issues.update(msg[1].split(","))
                 o["msg"] = common_error + ":" + ",".join(issues)

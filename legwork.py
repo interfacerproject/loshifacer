@@ -110,7 +110,7 @@ def worker():
 
 def start_worker(number_of_workers):
     for i in range(number_of_workers):
-        print("🏃 worker ", (i+1), " started") 
+        print("🏃 worker ", (i+1), " started")
         thread = Thread(target=worker, name="worker "+str(i+1))
         thread.deamon = True
         thread.start()
@@ -131,5 +131,5 @@ def main(start_folder, number_of_workers):
     start_ingestion(start_folder)
 
 if __name__=="__main__":
-    main('RDF/github.com', 10)
+    main('RDF', 10)
     
