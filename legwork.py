@@ -8,8 +8,8 @@ from zenroom import zencode_exec
 from datetime import datetime
 from gqlQueries import CREATE_ASSET, QUERY_VARIABLES
 from osh_tool import osh_tool
-from threading import Thread, current_thread
 from queue import Queue
+import multiprocessing  as mp
 
 # zenflows testing credential
 username = "matteo"
@@ -20,9 +20,6 @@ url = "http://65.109.11.42:9000/api"
 # gitlab references for rdf
 gl = gitlab.Gitlab('https://gitlab.opensourceecology.de')
 project = gl.projects.get('verein/projekte/losh-rdf')
-
-# queue
-q = Queue()
 
 # zenflows-crypto contract for signature
 contract = """
@@ -100,36 +97,45 @@ def create_mutation(metadata):
     except Exception as e:
         print(e)
 
-def worker():
+def ingestion(queue):
     while True:
-        t = q.get()
-        print("🛠 ", current_thread().name, " working on ", t["name"])
+        t = queue.get(True)
+        if t is None:
+            break
+        print("🛠 ", mp.current_process().name, " working on ", t["name"])
         t["osh_metadata"] = osh_tool(t["repo"])
         create_mutation(t)
-        q.task_done()
+    print("🚨 ", mp.current_process().name, " has finished, quit")
 
-def start_worker(number_of_workers):
-    for i in range(number_of_workers):
-        print("🏃 worker ", (i+1), " started")
-        thread = Thread(target=worker, name="worker "+str(i+1))
-        thread.deamon = True
-        thread.start()
-
-def start_ingestion(start_folder):
-    items = project.repository_tree(path=start_folder, iterator=True)
+def rdf_parsing(start_path, queue, n_workers):
+    items = project.repository_tree(path=start_path, iterator=True)
     for item in items:
         if item["type"] == "tree":
-            start_ingestion(item["path"])
+            rdf_parsing(item["path"], queue, 0)
         elif item["name"][-4:] == "toml":
             f = project.files.get(file_path=item["path"], ref='main')
             content = base64.b64decode(f.content).decode('utf-8')
             t = toml.loads(content)
-            q.put(t)
+            queue.put(t)
+    for _ in range(n_workers):
+        queue.put(None)
 
-def main(start_folder, number_of_workers):
-    start_worker(number_of_workers)
-    start_ingestion(start_folder)
+def main(start_path):
+    n_workers = mp.cpu_count() - 1
+    queue = mp.Queue()
+
+    workers = [mp.Process(target=ingestion, args=(queue,)) for _ in range(n_workers)]
+    for w in workers:
+        print("👷 started worker: ", w.name)
+        w.start()
+
+    writer = mp.Process(target=rdf_parsing, args=(start_path, queue, n_workers))
+    writer.start()
+
+    for w in workers:
+        w.join()
+    print('🔥 Ingestion done')
 
 if __name__=="__main__":
-    main('RDF', 10)
+    main('RDF')
     
