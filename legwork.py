@@ -2,7 +2,7 @@ import json
 import requests
 import toml
 import base64
-import gitlab
+import os
 
 from zenroom import zencode_exec
 from datetime import datetime
@@ -11,15 +11,12 @@ from osh_tool import osh_tool
 from queue import Queue
 import multiprocessing  as mp
 
-# zenflows testing credential
-username = "matteo"
-EdDSA = '2dYy36i7e34uMtzVu8i2NHfzPwpW89RQayWJtub7Urio'
-agent = '061KFE1AADXNDYTXRYTG007A14'
-url = "http://65.109.11.42:9000/api"
+username = 'losh'
+EdDSA = '6rZGg8Syq1YnX9gRDRH2LnkqChGkeVEzSMqFxRhERfEg'
+agent = '062SRR0VTB7QP0G1T763VVPYWR'
+url = 'https://zenflows-test.interfacer.dyne.org/api'
+locationId = "062SRJV3G9YDDAJP7N9CN6ZHJM"
 
-# gitlab references for rdf
-gl = gitlab.Gitlab('https://gitlab.opensourceecology.de')
-project = gl.projects.get('verein/projekte/losh-rdf')
 
 # zenflows-crypto contract for signature
 contract = """
@@ -35,6 +32,8 @@ Then print 'eddsa signature' as 'base64'
 Then print 'gql' as 'base64'
 Then print 'hash' as 'hex'
 """
+
+oversize_note = 0
 
 def sign_request(query, variables):
     body = {"query": query, "variables": variables}
@@ -69,7 +68,10 @@ def ql(query, variables={}, sign=False):
 def create_mutation(metadata):
     iv = ql(QUERY_VARIABLES)
     spec = iv["instanceVariables"]["specs"]["specProjectDesign"]["id"]
-    locationId = "061KFEJCA035RE8TSAYDN6DVDC"
+    if len(metadata["function"]) > 2048:
+        global oversize_note
+        oversize_note += 1
+        return
     try:
         print("⚙️ processing " + metadata["name"])
         asset = ql(
@@ -102,21 +104,20 @@ def ingestion(queue):
         t = queue.get(True)
         if t is None:
             break
+        t = toml.loads(t)
         print("🛠 ", mp.current_process().name, " working on ", t["name"])
         t["osh_metadata"] = osh_tool(t["repo"])
         create_mutation(t)
     print("🚨 ", mp.current_process().name, " has finished, quit")
 
 def rdf_parsing(start_path, queue, n_workers):
-    items = project.repository_tree(path=start_path, iterator=True)
-    for item in items:
-        if item["type"] == "tree":
-            rdf_parsing(item["path"], queue, 0)
-        elif item["name"][-4:] == "toml":
-            f = project.files.get(file_path=item["path"], ref='main')
-            content = base64.b64decode(f.content).decode('utf-8')
-            t = toml.loads(content)
-            queue.put(t)
+    for root, dirs, files in os.walk(start_path):
+        for f in files:
+            if f[-4:] == "toml":
+                r = open(os.path.join(root, f), 'r')
+                content = r.read()
+                queue.put(content)
+                r.close()
     for _ in range(n_workers):
         queue.put(None)
 
@@ -135,7 +136,7 @@ def main(start_path):
     for w in workers:
         w.join()
     print('🔥 Ingestion done')
+    print('project skipped for notes too big: ', oversize_note)
 
 if __name__=="__main__":
-    main('RDF')
-    
+    main('../losh-rdf/RDF')
