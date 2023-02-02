@@ -1,1 +1,9 @@
-node_modules
+# env variables
+.env
+
+# binary files produced by prepare-osh.sh
+projvar
+osh
+
+# python cache
+__pycache__
