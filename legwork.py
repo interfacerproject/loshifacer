@@ -9,14 +9,15 @@ from datetime import datetime
 from gqlQueries import CREATE_ASSET, QUERY_VARIABLES
 from osh_tool import osh_tool
 from queue import Queue
+from dotenv import load_dotenv
 import multiprocessing  as mp
 
-username = 'losh'
-EdDSA = '6rZGg8Syq1YnX9gRDRH2LnkqChGkeVEzSMqFxRhERfEg'
-agent = '062SRR0VTB7QP0G1T763VVPYWR'
-url = 'https://zenflows-test.interfacer.dyne.org/api'
-locationId = "062SRJV3G9YDDAJP7N9CN6ZHJM"
-
+load_dotenv()
+USERNAME=os.environ["USERNAME"]
+EDDSA=os.environ["EDDSA"]
+AGENT=os.environ["AGENT"]
+URL=os.environ["URL"]
+LOCATIONID=os.environ["LOCATIONID"]
 
 # zenflows-crypto contract for signature
 contract = """
@@ -37,7 +38,7 @@ oversize_note = 0
 
 def sign_request(query, variables):
     body = {"query": query, "variables": variables}
-    keys = {"keyring": {"eddsa": EdDSA}}
+    keys = {"keyring": {"eddsa": EDDSA}}
     data = {
         "gql": base64.b64encode(bytes(json.dumps(body), 'utf-8')).decode('utf-8')
     }
@@ -49,7 +50,7 @@ def sign_request(query, variables):
         raise SystemExit('Zenroom error')
     return {
         "zenflows-sign": json.loads(result.output)["eddsa_signature"],
-        "zenflows-user": username,
+        "zenflows-user": USERNAME,
         "zenflows-hash": json.loads(result.output)["hash"]
     }
 
@@ -57,13 +58,13 @@ def ql(query, variables={}, sign=False):
     request_headers = {}
     if sign:
         request_headers = sign_request(query, variables)
-    result = requests.post(url,
+    result = requests.post(URL,
                            json={"query": query, "variables": variables},
-                           headers=request_headers).json();
+                           headers=request_headers).json()
     if "errors" in result:
         print(result["errors"])
         raise SystemExit('GraphQL query error')
-    return result["data"];
+    return result["data"]
 
 def create_mutation(metadata):
     iv = ql(QUERY_VARIABLES)
@@ -86,8 +87,8 @@ def create_mutation(metadata):
                 "licensor": metadata["licensor"] if isinstance(metadata["licensor"], str) else metadata["licensor"][0],
                 "metadata": json.dumps(metadata),
                 "resourceSpec": spec,
-                "agent": agent,
-                "location": locationId,
+                "agent": AGENT,
+                "location": LOCATIONID,
                 "oneUnit": iv["instanceVariables"]["units"]["unitOne"]["id"],
                 # WIP on the creationTime
                 # different iso format between js and python
@@ -139,4 +140,4 @@ def main(start_path):
     print('project skipped for notes too big: ', oversize_note)
 
 if __name__=="__main__":
-    main('../losh-rdf/RDF')
+    main('../losh-rdf/RDF/github.com')
