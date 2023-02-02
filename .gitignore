@@ -1,0 +1,6 @@
+# env variables
+.env
+
+# binary files produced by prepare-osh.sh
+projvar
+osh
