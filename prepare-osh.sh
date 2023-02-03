@@ -17,13 +17,13 @@ cd ${tmp} && nimble build -y && cd - && cp ${tmp}/build/osh .
 rm -rf ${tmp}
 
 echo "Installing projvar..."
-rm -f projvar
 tmp=`mktemp -d`
 wget -O ${tmp}/projvar.tgz -q https://github.com/hoijui/projvar/releases/download/0.16.0/projvar-0.16.0-x86_64-unknown-linux-musl.tar.gz
 cd ${tmp} && tar -xzf projvar.tgz >/dev/null 2>&1 \
     && cd - && mv ${tmp}/projvar-*-x86_64-unknown-linux-musl/projvar .
 rm -rf ${tmp}
-export PATH=$PATH:${PWD}
+echo "sudo mv projvar /usr/local/bin"
+sudo mv projvar /usr/local/bin/
 
 echo ""
 echo "End of preparation"
