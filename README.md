@@ -81,7 +81,7 @@ poetry run cronjob
 ***
 ## 🎮 Quick start
 
-To start using {project_name} run the following command in the root folder
+To start using Loshifacer run the following command in the root folder
 
 ```bash
 docker compose up
@@ -135,7 +135,7 @@ https://dyne.org/
 
 ***
 ## 💼 License
-    {project_name} - {tagline}
+    Loshifacer - A simple tool to ingest OSH data in zenflows
     Copyleft (ɔ) 2022 Dyne.org foundation
 
     This program is free software: you can redistribute it and/or modify
