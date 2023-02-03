@@ -2,7 +2,7 @@
 
 # Loshifacer
 
-### {tagline}
+### A simple tool to ingest OSH data in zenflows
 
 </div>
 
@@ -31,9 +31,9 @@ To know more [DOWNLOAD THE WHITEPAPER](https://www.interfacerproject.eu/assets/n
 
 ## Loshifacer Features
 
-{screenshot}
-
-# [LIVE DEMO](https://https://interfacer-gui-staging.dyne.org/)
+* Use a large dataset of [OSH information](https://gitlab.opensourceecology.de/verein/projekte/losh-rdf.git)
+* Analize all the git repository with the [osh-toll](https://github.com/hoijui/osh-tool)
+* Secure communication with zenflows by using [zenflows-crypto](https://github.com/interfacerproject/zenflows-crypto)
 
 <br>
 
@@ -54,7 +54,6 @@ To know more [DOWNLOAD THE WHITEPAPER](https://www.interfacerproject.eu/assets/n
 ***
 ## 💾 Install
 
-There are two steps to do in advantage:
 - Clone [losh-rdf](https://gitlab.opensourceecology.de/verein/projekte/losh-rdf.git) on the machine.
 - Install [osh-toll](https://github.com/hoijui/osh-tool) in the main root of this repository and [projvar](https://github.com/hoijui/projvar) in a folder inside you PATH.
 - Modify .env.exmaple such that:
@@ -63,7 +62,7 @@ There are two steps to do in advantage:
     * USERNAME, AGENT and EDDSA are your personal information
     * LOCATIONID is the location-id of the resources
 
-After that you can continue with:
+Now you can simply start the ingestion using the following command:
 ```
 # install dependencies
 poetry install
