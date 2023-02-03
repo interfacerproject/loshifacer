@@ -3,6 +3,7 @@ import requests
 import toml
 import base64
 import os
+# import sys
 
 from zenroom import zencode_exec
 from datetime import datetime
@@ -13,6 +14,7 @@ from dotenv import load_dotenv
 import multiprocessing  as mp
 
 load_dotenv()
+PATH_TO_RDF=os.environ["PATH_TO_RDF"]
 USERNAME=os.environ["USERNAME"]
 EDDSA=os.environ["EDDSA"]
 AGENT=os.environ["AGENT"]
@@ -140,4 +142,6 @@ def main(start_path):
     print('project skipped for notes too big: ', oversize_note)
 
 if __name__=="__main__":
-    main('../losh-rdf/RDF/github.com')
+    if( len(sys.argv) >0 ): initial_path=sys.argv[1]
+    else: initial_path="RDF"
+    main(PATH_TO_RDF+initial_path)
