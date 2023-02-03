@@ -4,14 +4,15 @@ import toml
 import base64
 import os
 import sys
+import multiprocessing  as mp
+import logging, logging.handlers
 
 from zenroom import zencode_exec
 from datetime import datetime
-from loshifacer.gqlQueries import CREATE_ASSET, QUERY_VARIABLES
-from loshifacer.osh_tool import osh_tool
 from queue import Queue
 from dotenv import load_dotenv
-import multiprocessing  as mp
+from loshifacer.gqlQueries import CREATE_ASSET, QUERY_VARIABLES
+from loshifacer.osh_tool import osh_tool
 
 load_dotenv()
 PATH_TO_RDF=os.environ["PATH_TO_RDF"]
@@ -36,9 +37,7 @@ Then print 'gql' as 'base64'
 Then print 'hash' as 'hex'
 """
 
-oversize_note = 0
-
-def sign_request(query, variables):
+def sign_request(query, variables, log_msg):
     body = {"query": query, "variables": variables}
     keys = {"keyring": {"eddsa": EDDSA}}
     data = {
@@ -48,37 +47,34 @@ def sign_request(query, variables):
                           keys=json.dumps(keys),
                           data=json.dumps(data))
     if("ERROR" in result.logs):
-        print(result.logs)
-        raise SystemExit('Zenroom error')
-    return {
+        log_msg += " Zenroom signature error " + result.logs + ";"
+        return log_msg, {}
+    return log_msg, {
         "zenflows-sign": json.loads(result.output)["eddsa_signature"],
         "zenflows-user": USERNAME,
         "zenflows-hash": json.loads(result.output)["hash"]
     }
 
-def ql(query, variables={}, sign=False):
+def ql(query, log_msg, variables={}, sign=False):
     request_headers = {}
     if sign:
-        request_headers = sign_request(query, variables)
+        log_msg, request_headers = sign_request(query, variables, log_msg)
     result = requests.post(URL,
                            json={"query": query, "variables": variables},
                            headers=request_headers).json()
     if "errors" in result:
-        print(result["errors"])
-        raise SystemExit('GraphQL query error')
-    return result["data"]
+        log_msg += " GraphQL query error "+ result["errors"] + ";"
+        return log_msg, {}
+    return log_msg, result["data"]
 
-def create_mutation(metadata):
-    iv = ql(QUERY_VARIABLES)
+def create_mutation(metadata, log_msg):
+    log_msg, iv = ql(QUERY_VARIABLES, log_msg)
     spec = iv["instanceVariables"]["specs"]["specProjectDesign"]["id"]
-    if len(metadata["function"]) > 2048:
-        global oversize_note
-        oversize_note += 1
-        return
     try:
         print("⚙️ processing " + metadata["name"])
-        asset = ql(
+        log_msg, asset = ql(
             query=CREATE_ASSET,
+            log_msg=log_msg,
             variables={
                 "name": metadata["name"],
                 "note": metadata["function"],
@@ -99,21 +95,32 @@ def create_mutation(metadata):
             sign=True
         )
         print('✅ ASSET CREATED for', metadata["name"], ":", asset)
+        log_msg = "✅ " + log_msg
     except Exception as e:
-        print(e)
+        print('❌ ASSET NOT CREATED: '+e)
+        log_msg = "❌ " + log_msg
+    return log_msg
 
-def ingestion(queue):
+def worker_process(work_queue, log_queue):
+    # logging
+    h = logging.handlers.QueueHandler(log_queue)
+    root = logging.getLogger()
+    root.addHandler(h)
+    root.setLevel(logging.INFO)
+    # process
     while True:
-        t = queue.get(True)
+        t = work_queue.get(True)
         if t is None:
             break
         t = toml.loads(t)
-        print("🛠 ", mp.current_process().name, " working on ", t["name"])
-        t["osh_metadata"] = osh_tool(t["repo"])
-        create_mutation(t)
+        log_msg = "🛠 work on " + t["name"] +";" # + mp.current_process().name +
+        log_msg, t["osh_metadata"] = osh_tool(t["repo"], log_msg)
+        log_msg = create_mutation(t, log_msg)
+        innerlogger = logging.getLogger('worker')
+        innerlogger.info(log_msg)
     print("🚨 ", mp.current_process().name, " has finished, quit")
 
-def rdf_parsing(start_path, queue, n_workers):
+def writer_process(start_path, queue, n_workers):
     for root, dirs, files in os.walk(start_path):
         for f in files:
             if f[-4:] == "toml":
@@ -124,22 +131,42 @@ def rdf_parsing(start_path, queue, n_workers):
     for _ in range(n_workers):
         queue.put(None)
 
+def listener_process(log_queue):
+    root = logging.getLogger()
+    file_handler = logging.handlers.RotatingFileHandler('ingestion.log', 'a', 10000, 1)
+    formatter = logging.Formatter('%(asctime)s %(processName)-10s %(name)s %(levelname)-8s %(message)s')
+    file_handler.setFormatter(formatter)
+    root.addHandler(file_handler)
+    root.setLevel(logging.INFO)
+    while True:
+        record = log_queue.get(True)
+        if record is None:
+            break
+        logger = logging.getLogger(record.name)
+        logger.handle(record)
+
 def main(start_path):
-    n_workers = mp.cpu_count() - 1
-    queue = mp.Queue()
+    n_workers = mp.cpu_count() - 2
+    work_queue = mp.Queue()
+    log_queue = mp.Queue()
 
-    workers = [mp.Process(target=ingestion, args=(queue,)) for _ in range(n_workers)]
-    for w in workers:
-        print("👷 started worker: ", w.name)
-        w.start()
-
-    writer = mp.Process(target=rdf_parsing, args=(start_path, queue, n_workers))
+    writer = mp.Process(target=writer_process, args=(start_path, work_queue, n_workers))
+    print("📖 started writer:   ", writer.name)
     writer.start()
+
+    listener = mp.Process(target=listener_process, args=(log_queue,))
+    print("📻 started listener: ", listener.name)
+    listener.start()
+
+    workers = [mp.Process(target=worker_process, args=(work_queue, log_queue,)) for _ in range(n_workers)]
+    for w in workers:
+        print("👷 started worker:   ", w.name)
+        w.start()
 
     for w in workers:
         w.join()
     print('🔥 Ingestion done')
-    print('project skipped for notes too big: ', oversize_note)
+    log_queue.put(None)
 
 if __name__=="__main__":
     if( len(sys.argv) >0 ): initial_path=sys.argv[1]

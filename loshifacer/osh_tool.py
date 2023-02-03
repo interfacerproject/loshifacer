@@ -47,25 +47,25 @@ def short_output(data):
         output["checks"].append(out)
     return output
 
-def osh_tool(url):
+def osh_tool(url, log_msg):
     path = tempfile.mkdtemp()
     out = "[]"
     try:
         repo = git.Repo.clone_from(url, path, recursive=True)
-        print("\033[1;32m Project cloned: "+url+"\033[0;0m")
+        log_msg += " Project cloned; "
         osh_metadata = subprocess.run(
             ["./osh", "-qC", path, "check", "--report-json=/dev/stdout"],
             capture_output=True,
             text=True,
             check=True)
-        print("\033[1;32m Osh tool ran successfully on: "+url+"\033[0;0m")
+        log_msg += " Osh tool ran successfully;"
         out = short_output(osh_metadata.stdout.removeprefix("JObject"))
     except subprocess.CalledProcessError as e:
-        print("\033[1;31m Osh tool error on: "+url+"\033[0;0m")
+        log_msg += " Osh tool failed;"
     except git.exc.GitError as e:
-        print("\033[1;31m Project not cloned: "+url+"\033[0;0m")
+        log_msg += " Project not cloned;"
     except Exception as e:
-        print("\033[1;31m ❗Error: "+e+"\033[0;0m")
+        log_msg += "❗Error occurred: "+ e +";"
 
     cleanup(path)
-    return out
+    return log_msg, out
