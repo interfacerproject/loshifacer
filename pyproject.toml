@@ -4,6 +4,10 @@ version = "0.1.0"
 description = "Import LOSH metadata to zenflows"
 authors = ["matteo-cristino <cristino.matteo97@gmail.com>"]
 
+[tool.poetry.scripts]
+ingestion = "loshifacer.legwork:main"
+cronjob = "loshifacer.cronjob:main"
+
 [tool.poetry.dependencies]
 python = "^3.8"
 requests = "^2.28.1"
