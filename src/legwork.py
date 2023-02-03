@@ -3,7 +3,7 @@ import requests
 import toml
 import base64
 import os
-# import sys
+import sys
 
 from zenroom import zencode_exec
 from datetime import datetime
