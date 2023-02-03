@@ -7,3 +7,6 @@ osh
 
 # python cache
 __pycache__
+
+# logfiles
+ingestion.log*
