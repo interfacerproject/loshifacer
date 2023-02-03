@@ -1,6 +1,6 @@
 import os
 from git import Repo
-from shutil import copy
+from shutil import copy, rmtree
 from dotenv import load_dotenv
 from codecs import escape_decode
 from legwork import main as start_ingestion
@@ -40,7 +40,7 @@ def main():
         print("Start ingestion")
         target_dir = os.path.join(PATH_TO_RDF, dir_scan)
         start_ingestion(target_dir)
-        os.rmdir(target_dir)
+        rmtree(target_dir)
     else:
         print("Nothing new in: " + PATH_TO_RDF)
 
