@@ -7,8 +7,8 @@ import sys
 
 from zenroom import zencode_exec
 from datetime import datetime
-from gqlQueries import CREATE_ASSET, QUERY_VARIABLES
-from osh_tool import osh_tool
+from loshifacer.gqlQueries import CREATE_ASSET, QUERY_VARIABLES
+from loshifacer.osh_tool import osh_tool
 from queue import Queue
 from dotenv import load_dotenv
 import multiprocessing  as mp

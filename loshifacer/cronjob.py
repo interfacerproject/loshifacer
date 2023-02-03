@@ -3,7 +3,7 @@ from git import Repo
 from shutil import copy, rmtree
 from dotenv import load_dotenv
 from codecs import escape_decode
-from legwork import main as start_ingestion
+from loshifacer.legwork import main as start_ingestion
 
 load_dotenv()
 PATH_TO_RDF = os.environ["PATH_TO_RDF"]
