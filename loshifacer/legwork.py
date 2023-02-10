@@ -145,7 +145,11 @@ def listener_process(log_queue):
         logger = logging.getLogger(record.name)
         logger.handle(record)
 
-def main(start_path):
+def main():
+    if( len(sys.argv) >0 ): initial_path=sys.argv[1]
+    else: initial_path="RDF"
+    start_path=PATH_TO_RDF+initial_path
+
     n_workers = mp.cpu_count() - 2
     work_queue = mp.Queue()
     log_queue = mp.Queue()
@@ -169,6 +173,4 @@ def main(start_path):
     log_queue.put(None)
 
 if __name__=="__main__":
-    if( len(sys.argv) >0 ): initial_path=sys.argv[1]
-    else: initial_path="RDF"
-    main(PATH_TO_RDF+initial_path)
+    main()
