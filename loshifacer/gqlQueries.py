@@ -122,7 +122,7 @@ CREATE_ASSET = """
       $repo: String,
       $license: String,
       $licensor: String,
-      $metadata: JSON,
+      $resourceMetadata: JSONObject,
       $agent: ID!,
       $creationTime: DateTime!,
       $location: ID!,
@@ -135,6 +135,7 @@ CREATE_ASSET = """
       createEconomicEvent(
         event: {
           action: "raise",
+          resourceMetadata: $resourceMetadata,
           provider: $agent,
           receiver: $agent,
           hasPointInTime: $creationTime,
@@ -151,8 +152,7 @@ CREATE_ASSET = """
           version: $version,
           repo: $repo,
           license: $license,
-          licensor: $licensor,
-          metadata: $metadata }
+          licensor: $licensor }
       ) 
       {
         economicEvent {
