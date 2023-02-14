@@ -59,45 +59,47 @@ def ql(query, log_msg, variables={}, sign=False):
     request_headers = {}
     if sign:
         log_msg, request_headers = sign_request(query, variables, log_msg)
+        if request_headers == {}:
+            return log_msg, {}
     result = requests.post(URL,
                            json={"query": query, "variables": variables},
                            headers=request_headers).json()
     if "errors" in result:
-        log_msg += " GraphQL query error "+ result["errors"] + ";"
+        log_msg += " GraphQL query error "+ str(result["errors"]) + ";"
         return log_msg, {}
     return log_msg, result["data"]
 
 def create_mutation(metadata, log_msg):
     log_msg, iv = ql(QUERY_VARIABLES, log_msg)
     spec = iv["instanceVariables"]["specs"]["specProjectDesign"]["id"]
-    try:
-        print("⚙️ processing " + metadata["name"])
-        log_msg, asset = ql(
-            query=CREATE_ASSET,
-            log_msg=log_msg,
-            variables={
-                "name": metadata["name"],
-                "note": metadata["function"],
-                "okhv": metadata["okhv"],
-                "version": metadata["version"],
-                "repo": metadata["repo"],
-                "license": metadata["license"],
-                "licensor": metadata["licensor"] if isinstance(metadata["licensor"], str) else metadata["licensor"][0],
-                "metadata": json.dumps(metadata),
-                "resourceSpec": spec,
-                "agent": AGENT,
-                "location": LOCATIONID,
-                "oneUnit": iv["instanceVariables"]["units"]["unitOne"]["id"],
-                # WIP on the creationTime
-                # different iso format between js and python
-                "creationTime": datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ'),
-            },
-            sign=True
-        )
+    print("⚙️ processing " + metadata["name"])
+    log_msg, asset = ql(
+        query=CREATE_ASSET,
+        log_msg=log_msg,
+        variables={
+            "name": metadata["name"],
+            "note": metadata["function"] or "",
+            "okhv": metadata["okhv"],
+            "version": metadata["version"],
+            "repo": metadata["repo"],
+            "license": metadata["license"],
+            "licensor": metadata["licensor"] if isinstance(metadata["licensor"], str) else metadata["licensor"][0],
+            "resourceMetadata": json.dumps(metadata),
+            "resourceSpec": spec,
+            "agent": AGENT,
+            "location": LOCATIONID,
+            "oneUnit": iv["instanceVariables"]["units"]["unitOne"]["id"],
+            # WIP on the creationTime
+            # different iso format between js and python
+            "creationTime": datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ'),
+        },
+        sign=True
+    )
+    if not asset == {}:
         print('✅ ASSET CREATED for', metadata["name"], ":", asset)
         log_msg = "✅ " + log_msg
-    except Exception as e:
-        print('❌ ASSET NOT CREATED: '+e)
+    else:
+        print('❌ ASSET NOT CREATED')
         log_msg = "❌ " + log_msg
     return log_msg
 
@@ -113,6 +115,10 @@ def worker_process(work_queue, log_queue):
         if t is None:
             break
         t = toml.loads(t)
+        try:
+            t["specific-api-data"]["certificationDate"]=t["specific-api-data"]["certificationDate"].isoformat()
+        except:
+            pass
         log_msg = "🛠 work on " + t["name"] +";" # + mp.current_process().name +
         log_msg, t["osh_metadata"] = osh_tool(t["repo"], log_msg)
         log_msg = create_mutation(t, log_msg)
@@ -133,7 +139,7 @@ def writer_process(start_path, queue, n_workers):
 
 def listener_process(log_queue):
     root = logging.getLogger()
-    file_handler = logging.handlers.RotatingFileHandler('ingestion.log', 'a', 10000, 1)
+    file_handler = logging.handlers.RotatingFileHandler('ingestion.log', 'a')
     formatter = logging.Formatter('%(asctime)s %(processName)-10s %(name)s %(levelname)-8s %(message)s')
     file_handler.setFormatter(formatter)
     root.addHandler(file_handler)
