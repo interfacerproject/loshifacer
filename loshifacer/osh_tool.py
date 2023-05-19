@@ -54,7 +54,7 @@ def osh_tool(url, log_msg):
         repo = git.Repo.clone_from(url, path)
         log_msg += " Project cloned; "
         osh_metadata = subprocess.run(
-            ["./osh", "-qC", path, "check", "--report-json=/dev/stdout"],
+            ["osh", "-qC", path, "check", "--report-json=/dev/stdout"],
             capture_output=True,
             text=True,
             check=True)
