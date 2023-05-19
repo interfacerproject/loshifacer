@@ -4,6 +4,7 @@ import toml
 import base64
 import os
 import sys
+import time
 import multiprocessing  as mp
 import logging, logging.handlers
 
@@ -61,9 +62,13 @@ def ql(query, log_msg, variables={}, sign=False):
         log_msg, request_headers = sign_request(query, variables, log_msg)
         if request_headers == {}:
             return log_msg, {}
-    result = requests.post(URL,
+    try:
+        result = requests.post(URL,
                            json={"query": query, "variables": variables},
                            headers=request_headers).json()
+    except:
+        log_msg += " No response from the server;"
+        return log_msg, {}
     if "errors" in result:
         log_msg += " GraphQL query error "+ str(result["errors"]) + ";"
         return log_msg, {}
@@ -111,6 +116,7 @@ def worker_process(work_queue, log_queue):
     root.setLevel(logging.INFO)
     # process
     while True:
+        time.sleep(3)
         t = work_queue.get(True)
         if t is None:
             break
@@ -119,7 +125,7 @@ def worker_process(work_queue, log_queue):
             t["specific-api-data"]["certificationDate"]=t["specific-api-data"]["certificationDate"].isoformat()
         except:
             pass
-        log_msg = "🛠 work on " + t["name"] +";" # + mp.current_process().name +
+        log_msg = "🛠 work on " + t["repo"] +";"
         log_msg, t["osh_metadata"] = osh_tool(t["repo"], log_msg)
         log_msg = create_mutation(t, log_msg)
         innerlogger = logging.getLogger('worker')
