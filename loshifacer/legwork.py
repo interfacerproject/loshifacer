@@ -145,7 +145,7 @@ def writer_process(start_path, queue, n_workers):
 
 def listener_process(log_queue):
     root = logging.getLogger()
-    file_handler = logging.handlers.RotatingFileHandler('ingestion.log', 'a')
+    file_handler = logging.handlers.RotatingFileHandler('ingestion.log', 'a', maxBytes=300000, backupCount=4)
     formatter = logging.Formatter('%(asctime)s %(processName)-10s %(name)s %(levelname)-8s %(message)s')
     file_handler.setFormatter(formatter)
     root.addHandler(file_handler)
