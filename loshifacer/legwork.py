@@ -157,7 +157,7 @@ def listener_process(log_queue):
         logger = logging.getLogger(record.name)
         logger.handle(record)
 
-def main(start_path):
+def start(start_path):
 
     n_workers = mp.cpu_count() - 2
     work_queue = mp.Queue()
@@ -181,10 +181,13 @@ def main(start_path):
     print('🔥 Ingestion done')
     log_queue.put(None)
 
-if __name__ == "__main__":
+def main():
     if( len(sys.argv) >0 ):
         initial_path = sys.argv[1]
     else:
         initial_path = "RDF"
     start_path=PATH_TO_RDF+initial_path
-    main(start_path)
+    start(start_path)
+
+if __name__ == "__main__":
+    main()
