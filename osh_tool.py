@@ -4,6 +4,7 @@ import errno
 import shutil
 import json
 import git
+from datetime import datetime
 
 common_error = "File-format issue(s)"
 
@@ -13,6 +14,10 @@ def cleanup(path):
     except OSError as exc:
         if exc.errno != errno.ENOENT:  # ENOENT - no such file or directory
             raise
+
+def with_execution_date(data):
+    data["execution_date"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return data
 
 def short_output(data):
     output = {}
@@ -68,4 +73,4 @@ def osh_tool(url):
         print("\033[1;31m ❗Error: "+e+"\033[0;0m")
 
     cleanup(path)
-    return out
+    return with_execution_data(out)
