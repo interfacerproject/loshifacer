@@ -7,6 +7,7 @@ import sys
 import time
 import multiprocessing  as mp
 import logging, logging.handlers
+import random
 
 from zenroom import zencode_exec
 from datetime import datetime
@@ -62,15 +63,23 @@ def ql(query, log_msg, variables={}, sign=False):
         log_msg, request_headers = sign_request(query, variables, log_msg)
         if request_headers == {}:
             return log_msg, {}
-    try:
-        result = requests.post(URL,
-                           json={"query": query, "variables": variables},
-                           headers=request_headers).json()
-    except:
+    i = 0
+    request_success = False
+    while (not request_success) and i<10:
+        result = ""
+        try:
+            result = requests.post(URL,
+                            json={"query": query, "variables": variables},
+                            headers=request_headers).json()
+            request_success = True
+        except:
+            time.sleep(random.randint(1, 5))
+        if "errors" in result:
+            log_msg += " GraphQL query error "+ str(result["errors"]) + ";"
+            return log_msg, {}
+        i += 1
+    if not request_success:
         log_msg += " No response from the server;"
-        return log_msg, {}
-    if "errors" in result:
-        log_msg += " GraphQL query error "+ str(result["errors"]) + ";"
         return log_msg, {}
     return log_msg, result["data"]
 
@@ -182,7 +191,7 @@ def start(start_path):
     log_queue.put(None)
 
 def main():
-    if( len(sys.argv) >0 ):
+    if( len(sys.argv) > 1 ):
         initial_path = sys.argv[1]
     else:
         initial_path = "RDF"
