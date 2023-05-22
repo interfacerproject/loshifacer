@@ -91,9 +91,8 @@ RUN poetry install
 VOLUME /var/losh-rdf
 VOLUME /tmp
 
-RUN git clone https://gitlab.opensourceecology.de/verein/projekte/losh-rdf /var/losh-rdf
-RUN cd /var/losh-rdf && git reset --hard HEAD~1
-
+# RUN git clone https://gitlab.opensourceecology.de/verein/projekte/losh-rdf /var/losh-rdf
+# RUN cd /var/losh-rdf && git reset --hard HEAD~1
 
 # USER $USER:$GROUP
 
